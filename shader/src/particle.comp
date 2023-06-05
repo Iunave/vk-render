@@ -1,0 +1,46 @@
+#version 460
+
+#include "functions.glsl"
+
+#extension GL_EXT_scalar_block_layout : require
+
+struct particle_t
+{
+    vec3 location;
+    vec3 scale;
+};
+
+vec2 walk_circle(vec2 origin, float radius, float radian)
+{
+    origin.x += (radius * cos(radian));
+    origin.y += (radius * sin(radian));
+    return origin;
+}
+
+#define PI2 6.283185
+
+layout(local_size_x=256, local_size_y=1, local_size_z=1) in;
+
+layout(std140, set=0, binding=0) uniform control
+{
+    float circle_time;
+    uint particle_count;
+};
+
+layout(scalar, set=0, binding=1) buffer particle_buffer
+{
+    particle_t particles[];
+};
+
+void main()
+{
+    uint gid = gl_GlobalInvocationID.x;
+
+    if(gid < particle_count)
+    {
+        float horizontal_distance = length(particles[gid].location.xz);
+        float circle_time_offset = circle_time + PI2 * (float(gid) / float(particle_count));
+
+        particles[gid].location.xz = walk_circle(vec2(0, 0), horizontal_distance, circle_time_offset);
+    }
+}
